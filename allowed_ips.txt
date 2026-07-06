@@ -1,0 +1,7 @@
+# GOST_ACCESS_CONTROL allowlist
+# One IP (or CIDR) per line. Lines starting with # or blank lines ignored.
+# Changes here are picked up by sync_fw.sh within 60 seconds (cron).
+#
+# Example:
+# 203.0.113.10
+# 198.51.100.0/24

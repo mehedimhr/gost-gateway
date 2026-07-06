@@ -1,0 +1,17 @@
+[Unit]
+Description=Gost Reverse Proxy Gateway (Multi-VPS TLS relay)
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/local/sbin/gost-launch.sh --check
+ExecStart=/usr/local/sbin/gost-launch.sh
+Restart=always
+RestartSec=5s
+User=root
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
