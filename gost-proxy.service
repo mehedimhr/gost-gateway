@@ -2,6 +2,7 @@
 Description=Gost Reverse Proxy Gateway (Multi-VPS TLS relay)
 After=network-online.target tailscaled.service
 Wants=network-online.target tailscaled.service
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple

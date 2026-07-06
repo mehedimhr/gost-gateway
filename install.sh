@@ -31,7 +31,7 @@ fi
 systemctl enable --now cron >/dev/null 2>&1 || true
 
 echo "[*] Checking for Tailscale interface"
-if ip link show tailscale0 >/dev/null 2>&1; then
+if [[ -d /sys/class/net/tailscale0 ]]; then
     echo "    tailscale0 present - leaving interface untouched"
 else
     echo "    tailscale0 not found - continuing without it"
@@ -48,7 +48,7 @@ if ! command -v gost >/dev/null 2>&1; then
         aarch64) GOST_ARCH="arm64" ;;
         *) echo "Unsupported arch: $ARCH" >&2; exit 1 ;;
     esac
-    GOST_VERSION="$(curl -fsSL https://api.github.com/repos/go-gost/gost/releases/latest | grep -oP '"tag_name":\s*"v\K[0-9.]+' | head -n1)"
+    GOST_VERSION="$(curl -fsSL https://api.github.com/repos/go-gost/gost/releases/latest 2>/dev/null | grep -oP '"tag_name":\s*"v\K[0-9.]+' | head -n1 || true)"
     GOST_VERSION="${GOST_VERSION:-3.2.6}"
     TMP_TGZ="$(mktemp)"
     curl -fsSL -o "${TMP_TGZ}" \
