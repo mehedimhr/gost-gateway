@@ -24,13 +24,14 @@ mkdir -p "${CERT_DIR}"
 
 echo "[*] Installing required packages (non-interactive)"
 export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
 REQUIRED_PKGS=(curl wget tar openssl iptables cron zip unzip sed grep)
 MISSING=()
 for pkg in "${REQUIRED_PKGS[@]}"; do
     dpkg -s "$pkg" >/dev/null 2>&1 || MISSING+=("$pkg")
 done
 if [[ ${#MISSING[@]} -gt 0 ]]; then
-    apt-get update -y
+    apt-get update -y || true
     apt-get install -y --no-install-recommends "${MISSING[@]}"
 fi
 systemctl enable --now cron >/dev/null 2>&1 || true
@@ -89,9 +90,17 @@ set -euo pipefail
 GOST_HOME="/etc/gost"
 CERT_DIR="${GOST_HOME}/certs"
 
-# Regenerate cert if missing, corrupted, or zeroed - must exist before daemon starts
-if [[ ! -s "${CERT_DIR}/cert.pem" || ! -s "${CERT_DIR}/key.pem" ]] \
-   || ! openssl x509 -in "${CERT_DIR}/cert.pem" -noout >/dev/null 2>&1; then
+# Regenerate cert if missing, corrupted, zeroed, or cert/key no longer match - must exist before daemon starts
+CERT_OK=1
+if [[ ! -s "${CERT_DIR}/cert.pem" || ! -s "${CERT_DIR}/key.pem" ]]; then
+    CERT_OK=0
+elif ! openssl x509 -in "${CERT_DIR}/cert.pem" -noout >/dev/null 2>&1; then
+    CERT_OK=0
+elif [[ "$(openssl x509 -noout -modulus -in "${CERT_DIR}/cert.pem" 2>/dev/null)" != \
+         "$(openssl rsa -noout -modulus -in "${CERT_DIR}/key.pem" 2>/dev/null)" ]]; then
+    CERT_OK=0
+fi
+if [[ "${CERT_OK}" == "0" ]]; then
     openssl req -x509 -newkey rsa:2048 -nodes \
         -keyout "${CERT_DIR}/key.pem" -out "${CERT_DIR}/cert.pem" \
         -days 3650 -subj "/CN=gost-gateway"
