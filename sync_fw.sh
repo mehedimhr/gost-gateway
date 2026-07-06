@@ -22,12 +22,18 @@ if ! iptables -C INPUT -p tcp --dport "${PORT}" -j "${CHAIN}" >/dev/null 2>&1; t
     iptables -I INPUT -p tcp --dport "${PORT}" -j "${CHAIN}"
 fi
 
-# Populate ACCEPT rules from allowlist (ignore blanks/comments)
+# Populate ACCEPT rules from allowlist (ignore blanks/comments/invalid entries)
+IP_RE='^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$'
 while IFS= read -r line; do
     line="${line%%#*}"
     ip="$(echo "${line}" | xargs)"
     [[ -z "${ip}" ]] && continue
-    iptables -A "${CHAIN}" -s "${ip}" -p tcp --dport "${PORT}" -j ACCEPT
+    if [[ ! "${ip}" =~ ${IP_RE} ]]; then
+        echo "sync_fw.sh: skipping invalid entry: ${ip}" >&2
+        continue
+    fi
+    iptables -A "${CHAIN}" -s "${ip}" -p tcp --dport "${PORT}" -j ACCEPT || \
+        echo "sync_fw.sh: failed to add rule for ${ip}" >&2
 done < "${ALLOW_FILE}"
 
 # Trailing DROP boundary - anything not explicitly allowed is rejected
