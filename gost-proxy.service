@@ -6,6 +6,7 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
+ExecStartPre=/usr/local/sbin/sync_fw.sh
 ExecStartPre=/usr/local/sbin/gost-launch.sh --check
 ExecStart=/usr/local/sbin/gost-launch.sh
 Restart=always

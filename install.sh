@@ -14,6 +14,11 @@ BIN_DIR="/usr/local/bin"
 SBIN_DIR="/usr/local/sbin"
 REPO_RAW="https://raw.githubusercontent.com/mehedimhr/gost-gateway/main"
 
+if [[ ! "${PORT}" =~ ^[0-9]+$ ]] || (( PORT < 1 || PORT > 65535 )); then
+    echo "Invalid port: ${PORT} (must be 1-65535)" >&2
+    exit 1
+fi
+
 echo "[*] Preparing directories"
 mkdir -p "${CERT_DIR}"
 

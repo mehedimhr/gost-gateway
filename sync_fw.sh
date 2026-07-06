@@ -17,10 +17,15 @@ if ! iptables -nL "${CHAIN}" >/dev/null 2>&1; then
 fi
 iptables -F "${CHAIN}"
 
-# Ensure INPUT jumps to our chain exactly once (idempotent insert)
-if ! iptables -C INPUT -p tcp --dport "${PORT}" -j "${CHAIN}" >/dev/null 2>&1; then
-    iptables -I INPUT -p tcp --dport "${PORT}" -j "${CHAIN}"
-fi
+# Drop any stale INPUT jump rules pointing at our chain (e.g. leftover from a
+# previous port before it was changed), then insert exactly one for the current port
+# (awk reads to EOF rather than early-exiting, so the iptables producer never gets SIGPIPE under pipefail)
+while true; do
+    LINE="$(iptables -L INPUT -n --line-numbers | awk -v c="${CHAIN}" '$2==c && !f{print $1; f=1}')"
+    [[ -z "${LINE}" ]] && break
+    iptables -D INPUT "${LINE}"
+done
+iptables -I INPUT -p tcp --dport "${PORT}" -j "${CHAIN}"
 
 # Populate ACCEPT rules from allowlist (ignore blanks/comments/invalid entries)
 IP_RE='^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$'
